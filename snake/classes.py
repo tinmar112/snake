@@ -1,7 +1,6 @@
 import argparse
 import pygame
 from collections import deque
-import random as rd
 
 ############### Setting up classes needed for this code. ###############
 
@@ -13,9 +12,8 @@ class Tile:
     
     def draw(self,screen,colour):
         size = self._size
-        rect = pygame.Rect(self._loc[1]*size,self._loc[0]*size,size,size)
+        rect = pygame.Rect(self._loc[0]*size,self._loc[1]*size,size,size)
         pygame.draw.rect(screen,colour,rect)
-
 
 class Checkerboard:
     
@@ -38,55 +36,42 @@ class Checkerboard:
 
 class Snake:
     
-    def __init__(self, tiles : deque, tile_size,colour=(0,255,0)):
-        '''A snake of shape (i,j): i lines and j columns, at location (x,y).'''
+    def __init__(self, tiles : deque, tile_size,colour=(0,255,0),direction=(1,0)):
         self._tiles = tiles
-        self._length = len(tiles)
         self._tile_size = tile_size
         self._colour = colour
-        self._popped = None # This will store the last known position of the snake's tail.
+        self._direction = direction
 
     def __contains__(self,tile):
-        return(tile == self._tiles[-1])
+        return(tile in self._tiles)
 
     def draw(self,screen):
         for tile in self._tiles:
-            S_Tile = Tile(self._tile_size,(tile[1],tile[0]))
+            S_Tile = Tile(self._tile_size,tile)
             S_Tile.draw(screen,self._colour)
+
+    def move(self,direction : tuple):
+        '''Specify a 2-tuple :
+        * (1,0) moves right;
+        * (-1,0) moves left;
+        * (0,1) moves down;
+        * (0,-1) moves right.'''
+        (head_x,head_y) = self._tiles[-1]
+        self._tiles.append((head_x + direction[0],head_y + direction[1]))
     
-    def moveRight(self):
-        (head_x,head_y) = self._tiles[-1]
-        self._tiles.append((head_x + 1,head_y))
-        self._popped = self._tiles[0]
-        self._tiles.popleft()
-    def moveLeft(self):
-        (head_x,head_y) = self._tiles[-1]
-        self._tiles.append((head_x - 1,head_y))
-        self._popped = self._tiles[0]
-        self._tiles.popleft()
-    def moveUp(self):
-        (head_x,head_y) = self._tiles[-1]
-        self._tiles.append((head_x,head_y - 1))
-        self._popped = self._tiles[0]
-        self._tiles.popleft()
-    def moveDown(self):
-        (head_x,head_y) = self._tiles[-1]
-        self._tiles.append((head_x,head_y + 1))
-        self._popped = self._tiles[0]
+    def remove_tail(self):
         self._tiles.popleft()
 
-    def move(self,direction):
-        if direction == 'Right':
-            self.moveRight()
-        if direction == 'Left':
-            self.moveLeft()
-        if direction == 'Up':
-            self.moveUp()
-        if direction == 'Down':
-            self.moveDown()
-    
-    def lengthen(self):
-        self._tiles.appendleft(self._popped)
+class Fruit:
+
+    def __init__(self,loc: tuple,size,colour=(255,0,0)):
+        self._loc = loc
+        self._size = size
+        self._colour = colour
+
+    def draw(self,screen):
+        fruit = Tile(self._size,self._loc)
+        fruit.draw(screen,self._colour)
 
 ############### Main functions. ###############
 
@@ -123,23 +108,22 @@ def snake():
 
     clock = pygame.time.Clock()
 
-    snake = Snake(deque([(10,5),(11,5),(12,5),(13,5),(14,5)]),tile_size)
-
     # Setting a bool to indicate if the game should continue.
     run = True
 
-    # Bools that indicate the latest direction and whether a fruit is present.
+    score = 0
 
-    direction = 'Right'
-    fruit1 = False
-    fruit_tile = None
-    
+    # Initialising snake and fruit.
+    snake = Snake(deque([(10,5),(11,5),(12,5),(13,5),(14,5)]),tile_size)
+    the_fruit = Fruit((3,3),tile_size)
+
     ##### Main game loop
     while run:
 
-        clock.tick(5) # Here you can adjust the number of FPS.
-        changed_direction = False
+        clock.tick(5) # Here you can adjust the maximum number of FPS. Right now, it is set to 5. This somewhat controls game speed.
 
+        pygame.display.set_caption('Score : %d' % score) # Displaying player's score.
+        
         # This loop checks for keyboard inputs.
         for event in pygame.event.get():
 
@@ -148,56 +132,48 @@ def snake():
                 if event.key == pygame.K_q:
                     run = False
                 # Direction inputs
+                direction = snake._direction
                 if event.key == pygame.K_RIGHT:
-                    if (direction != 'Right') and (direction != 'Left'): # Can't ask for reverse course.
-                        snake.moveRight()
-                        direction = 'Right'
-                        changed_direction = True
-                if event.key == pygame.K_LEFT:
-                    if (direction != 'Left') and (direction != 'Right'):
-                        snake.moveLeft()
-                        direction = 'Left'
-                        changed_direction = True
-                if event.key == pygame.K_UP:
-                    if (direction != 'Up') and (direction != 'Down'):
-                        snake.moveUp()
-                        direction = 'Up'
-                        changed_direction = True
-                if event.key == pygame.K_DOWN:
-                    if (direction != 'Down') and (direction != 'Up'):
-                        snake.moveDown()
-                        direction = 'Down'
-                        changed_direction = True
+                    if (direction != (1,0)) and (direction != (-1,0)): # Can't ask for reverse course.
+                        snake._direction = (1,0)
+                elif event.key == pygame.K_LEFT:
+                    if (direction != (-1,0)) and (direction != (1,0)):
+                        snake._direction = (-1,0)
+                elif event.key == pygame.K_UP:
+                    if (direction != (0,-1)) and (direction != (0,1)):
+                        snake._direction = (0,-1)
+                elif event.key == pygame.K_DOWN:
+                    if (direction != (0,1)) and (direction != (0,-1)):
+                        snake._direction = (0,1)
             # Window interrupt
             if event.type == pygame.QUIT:
                 run = False
-        
-        # When the player asks for no specific direction change, the snake should continue in the same direction as before.
-        if not changed_direction:
-            snake.move(direction)
-        
-        # Checking whether the snake has reached the edge of the board.
-        if (snake._tiles[-1][0] == cols - 1) or (snake._tiles[-1][0] == 0) or (snake._tiles[-1][1] == lines - 1) or (snake._tiles[-1][1] == 0):
+
+        snake.move(snake._direction)
+
+        # Checking for self-collision.
+        if len(set(snake._tiles)) < len(snake._tiles):
             run = False
+        # Checking whether the snake has reached the edge of the board.
+        (head_x,head_y) = snake._tiles[-1]
+        if (head_x == 0) or (head_y == 0) or (head_y == lines-1) or (head_x == cols-1):
+            run = False
+
+        checkerboard = Checkerboard(cols,lines,tile_size)
+
+        # This handles fruit-eating.
+        if the_fruit._loc == snake._tiles[-1]:
+            score = score + 1
+            if the_fruit._loc == (3,3):
+                the_fruit._loc = (15,10)
+            elif the_fruit._loc == (15,10):
+                the_fruit._loc = (3,3)
+        else:
+            snake.remove_tail()
         
-        checkerboard = Checkerboard(lines,cols,tile_size)
+        # Position updates
         checkerboard.draw(screen)
-
-        # Setting up fruits.
-        fruits = [(3,3),(10,15)]
-        
-        if not fruit1:
-            fruit = rd.choice(fruits)
-            fruit_tile = Tile(tile_size,fruit)
-            fruit1 = True
-        
-        if fruit_tile._loc in snake:
-            snake.lengthen()
-            fruit1 = False
-
-        fruit_tile.draw(screen,(255,0,0))
-        
-        # Updating the snake's position on the checkerboard.
+        the_fruit.draw(screen)
         snake.draw(screen)
 
         pygame.display.update()
