@@ -2,10 +2,10 @@ Welcome to this Snake Game.
 
 - To run the game, go inside the game folder and simply run:  
 poetry run snake
-
-- If you wish to choose a specific window size (for instance 500x300) you can run:  
-poetry run snake --width 500 --height 300
+- If you wish to choose a custom checkerboard size (for instance 30 lines x 40 columns) you can run:  
+poetry run snake --lines 30 --columns 40
 - or alternatively:  
-poetry run snake -W 500 -H 300
+poetry run snake -l 30 -c 40
+- To quit the game, press Q or click on the close button.
 
 Enjoy!
