@@ -23,6 +23,7 @@ MIN_TILE_SIZE = 10
 MAX_TILE_SIZE = 30
 MIN_FPS = 10
 MAX_FPS = 30
+DEFAULT_SCORES_FILE="snake_scores.yml"
 
 # Snake constants
 SK_DEF_HEAD_COLOR = pygame.Color("Green2") # Snake's head default color
@@ -67,13 +68,14 @@ def read_args() -> argparse.Namespace:
     # Game options
     parser.add_argument("--gameover-on-exit", action = "store_true",
                         help="Exiting the board ends the game.")
-    parser.add_argument("--scores-file",default="snake_scores.yml",
-                        help="Chooses the file in which to store scores.")
 
     # FPS
     parser.add_argument("--fps", type = int, default = DEFAULT_FPS,
                         help="Set the number of frames per second."
                         f" Must be between {MIN_FPS} and {MAX_FPS}.")
+    #Scores
+    parser.add_argument("--scores-file", type=str,default=DEFAULT_SCORES_FILE,
+                        help="The path of the high scores file")
 
     # Parse
     args = parser.parse_args()

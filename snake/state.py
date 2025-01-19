@@ -1,8 +1,7 @@
 from enum import Enum
 
-
 class State(Enum) :
-    """Define the states of the game."""
+    """Define the state that the game is currently in."""
 
     QUIT=0
     PLAY=1
